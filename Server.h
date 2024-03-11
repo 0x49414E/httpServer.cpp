@@ -16,7 +16,8 @@ public:
 	bool BindSocket();
 	bool Listen(int backlog);
 	virtual void Connect() override;
-	std::string GenerateResponse();
+	void HandleRequest(const char* request, SOCKET& clientSock);
+	void GenerateResponse(unsigned short status_code = 200);
 };
 
 #endif

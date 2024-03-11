@@ -1,7 +1,5 @@
 #include "Server.h"
 
-#pragma comment(lib, "Ws2_32.lib")
-
 constexpr auto HOST = "0.0.0.0";
 constexpr auto PORT = 8000;
 

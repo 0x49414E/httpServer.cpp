@@ -1,7 +1,7 @@
 #include "Server.h"
-#include <sstream>
+#include "Functions.h"
 
-Server::Server(const char* host, unsigned short port) : Sock::Sock(host, port), addrlen(sizeof(service)), response(GenerateResponse()) {};
+Server::Server(const char* host, unsigned short port) : Sock::Sock(host, port), addrlen(sizeof(service)), response("") {};
 
 Server::~Server() {
 	Cleanup();
@@ -37,6 +37,18 @@ bool Server::Listen(int backlog)
 	return true;
 }
 
+void Server::HandleRequest(const char* request, SOCKET& clientSock)
+{
+
+	std::vector<std::string> req = parse(request);
+
+	if (req.size() < 3) { GenerateResponse(400); send(clientSock, response.c_str(), response.size(), 0); };
+
+	if (req[0] == "GET" && req[1] == "/" && req[2] == "HTTP/1.1\r") { GenerateResponse(200); send(clientSock, response.c_str(), response.size(), 0); };
+
+	closesocket(clientSock);
+}
+
 
 void Server::Connect() 
 {
@@ -50,19 +62,28 @@ void Server::Connect()
 		char* buffer = new char[size] {0};
 		int bytes = recv(clientSock, buffer, size, 0);
 		std::cout << "Data received: \n" << buffer << std::endl;
+		HandleRequest(buffer, clientSock);
 		delete[] buffer;
 		buffer = nullptr;
-		send(clientSock, response.c_str(), response.size(), 0);
-		closesocket(clientSock);
 	}
 }
 
-std::string Server::GenerateResponse()
+void Server::GenerateResponse(unsigned short status_code)
 {
-	std::string html = "<!DOCTYPE html><html lang=\"en\"><body><h1> Static HTTP Server </h1><p> Hello World! </p></body></html>";
+	std::string html;
 	std::ostringstream ss;
-	ss << "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: " << html.size() << "\n\n"
-		<< html;
-
-	return ss.str();
+	switch(status_code)
+	{
+	case 200:
+		html = "<!DOCTYPE html><html lang=\"en\"><body><h1> Static HTTP Server </h1><p> Hello World! </p></body></html>";
+		ss << "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: " << html.size() << "\n\n"
+			<< html;
+		response = ss.str();
+		break;
+	case 400:
+		html = "<!DOCTYPE html><html lang=\"en\"><body><h1> 400 </h1><p> Bad Request </p></body></html>";
+		ss << "HTTP/1.1 400 Bad Request\nContent-Type: text/html\nContent-Lenght: " << html.size() << "\n\n" << html;
+		response = ss.str();
+		break;
+	}
 }
